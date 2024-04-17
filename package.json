@@ -1,0 +1,24 @@
+{
+	"name": "tipx-l-api",
+	"version": "1.0.0",
+	"description": "Tipx-L API.",
+	"main": "index.js",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Tipx-L/tipx-l-api.git"
+	},
+	"keywords": [
+		"API"
+	],
+	"author": "Tipx-L",
+	"license": "GPL-3.0-only",
+	"bugs": {
+		"url": "https://github.com/Tipx-L/tipx-l-api/issues"
+	},
+	"homepage": "https://github.com/Tipx-L/tipx-l-api#readme",
+	"type": "module",
+	"dependencies": {
+		"archiver": "^7.0.1",
+		"p-limit": "^5.0.0"
+	}
+}
