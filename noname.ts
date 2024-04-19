@@ -1,5 +1,6 @@
 import JSZip from "jszip";
 import { EOL } from "os";
+import pLimit from "p-limit";
 
 interface DownloadAssets {
 	action: "downloadAssets";
@@ -30,6 +31,8 @@ gitHubHeaders.set("Accept", "application/vnd.github.v3+json");
 const githubInit: RequestInit = {
 	headers: gitHubHeaders
 };
+
+const limit = pLimit(1);
 
 /**
  * Retrieves the latest version tag from a GitHub repository, excluding a specific tag.
@@ -85,7 +88,7 @@ async function fetchArrayBuffer(input: string | URL | Request, retryCount: numbe
 	}
 
 	let message = `Failed to fetch array buffer of ${input} after ${retryCount} attempts`;
-	throw new Error(errors.length ? `${message}${errors.map(error => `${EOL}${error.message}`)}` : message);
+	throw new Error(errors.length ? `${message}${errors.map(error => `${EOL}${error.message}`).join("")}` : message);
 }
 
 export async function getNoname(noname: Noname) {
@@ -104,16 +107,18 @@ export async function getNoname(noname: Noname) {
 		const zip = new JSZip();
 
 		await Promise.all(
-			fileList.map(async file => {
-				const arrayBuffer = await fetchArrayBuffer(`https://raw.githubusercontent.com/${owner}/${repo}/${version}/${file}`);
+			fileList.map(file =>
+				limit(async () => {
+					const arrayBuffer = await fetchArrayBuffer(`https://raw.githubusercontent.com/${owner}/${repo}/${version}/${file}`);
 
-				zip.file(file, arrayBuffer, {
-					compression: "DEFLATE",
-					compressionOptions: {
-						level: 9
-					}
-				});
-			})
+					zip.file(file, arrayBuffer, {
+						compression: "DEFLATE",
+						compressionOptions: {
+							level: 9
+						}
+					});
+				})
+			)
 		);
 
 		const headers = new Headers();
