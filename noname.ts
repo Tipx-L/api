@@ -41,8 +41,9 @@ const githubInit: RequestInit = {
  * @throws {Error} Will throw an error if the fetch operation fails or if no valid tags are found.
  */
 async function getLatestVersionFromGitHub(owner: string, repo: string) {
-	const tagsResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/tags`, githubInit);
-	if (!tagsResponse.ok) throw new Error("Failed to fetch tags from GitHub repository");
+	const input = `https://api.github.com/repos/${owner}/${repo}/tags`;
+	const tagsResponse = await fetch(input, githubInit);
+	if (!tagsResponse.ok) throw new Error(`Failed to fetch tags from ${input}`);
 	const tags = (await tagsResponse.json()) as Tag[];
 
 	for (const tag of tags) {
@@ -50,7 +51,7 @@ async function getLatestVersionFromGitHub(owner: string, repo: string) {
 		if (tagName !== "v1998") return tagName;
 	}
 
-	throw new Error("No valid tags found in the repository");
+	throw new Error(`No valid tags found in ${input}`);
 }
 
 async function generateHashFromArray(array: unknown[]) {
@@ -73,12 +74,12 @@ async function fetchArrayBuffer(input: string | URL | Request, retryCount: numbe
 	for (let repetition = 0; repetition < retryCount; repetition++) {
 		try {
 			const fetchArrayBufferResponse = await fetch(input);
-			if (!fetchArrayBufferResponse.ok) throw new Error(`Fetch request failed with status: ${fetchArrayBufferResponse.status}`);
+			if (!fetchArrayBufferResponse.ok) throw new Error(`Fetch request of ${input} failed with status: ${fetchArrayBufferResponse.status}`);
 			return fetchArrayBufferResponse.arrayBuffer();
 		} catch {}
 	}
 
-	throw new Error(`Failed to fetch array buffer after ${retryCount} attempts`);
+	throw new Error(`Failed to fetch array buffer of ${input} after ${retryCount} attempts`);
 }
 
 export async function getNoname(noname: Noname) {
