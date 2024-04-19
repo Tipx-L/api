@@ -1,4 +1,5 @@
 import JSZip from "jszip";
+import { EOL } from "os";
 
 interface DownloadAssets {
 	action: "downloadAssets";
@@ -71,15 +72,20 @@ async function generateHashFromArray(array: unknown[]) {
  * @throws {Error} Will throw an error if the fetch request fails or if it fails to obtain a valid array buffer after the specified number of retries.
  */
 async function fetchArrayBuffer(input: string | URL | Request, retryCount: number = 5) {
+	const errors: Error[] = [];
+
 	for (let repetition = 0; repetition < retryCount; repetition++) {
 		try {
 			const fetchArrayBufferResponse = await fetch(input);
 			if (!fetchArrayBufferResponse.ok) throw new Error(`Fetch request of ${input} failed with status: ${fetchArrayBufferResponse.status}`);
 			return fetchArrayBufferResponse.arrayBuffer();
-		} catch {}
+		} catch (error) {
+			if (error instanceof Error) errors.push(error);
+		}
 	}
 
-	throw new Error(`Failed to fetch array buffer of ${input} after ${retryCount} attempts`);
+	let message = `Failed to fetch array buffer of ${input} after ${retryCount} attempts`;
+	throw new Error(errors.length ? `${message}${errors.map(error => `${EOL}${error.message}`)}` : message);
 }
 
 export async function getNoname(noname: Noname) {
