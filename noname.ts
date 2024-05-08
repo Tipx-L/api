@@ -1,6 +1,4 @@
 import JSZip from "jszip";
-import { EOL } from "os";
-import pLimit from "p-limit";
 
 interface DownloadAssets {
 	action: "downloadAssets";
@@ -31,8 +29,6 @@ gitHubHeaders.set("Accept", "application/vnd.github.v3+json");
 const githubInit: RequestInit = {
 	headers: gitHubHeaders
 };
-
-const limit = pLimit(1);
 
 /**
  * Retrieves the latest version tag from a GitHub repository, excluding a specific tag.
@@ -67,30 +63,6 @@ async function generateHashFromArray(array: unknown[]) {
 	return hashHex;
 }
 
-/**
- * Attempts to fetch the response array buffer from a given resource, retrying a specified number of times.
- * @param input - The resource to fetch. Can be a URL, Request object, or string representing the URL.
- * @param retryCount - The number of times to retry the fetch if it fails. Defaults to 5.
- * @returns A promise that resolves with the readable stream of the response array buffer.
- * @throws {Error} Will throw an error if the fetch request fails or if it fails to obtain a valid array buffer after the specified number of retries.
- */
-async function fetchArrayBuffer(input: string | URL | Request, retryCount: number = 5) {
-	const errors: Error[] = [];
-
-	for (let repetition = 0; repetition < retryCount; repetition++) {
-		try {
-			const fetchArrayBufferResponse = await fetch(input);
-			if (!fetchArrayBufferResponse.ok) throw new Error(`Fetch request of ${input} failed with status: ${fetchArrayBufferResponse.status}`);
-			return fetchArrayBufferResponse.arrayBuffer();
-		} catch (error) {
-			if (error instanceof Error) errors.push(error);
-		}
-	}
-
-	let message = `Failed to fetch array buffer of ${input} after ${retryCount} attempts`;
-	throw new Error(errors.length ? `${message}${errors.map(error => `${EOL}${error.message}`).join("")}` : message);
-}
-
 export async function getNoname(noname: Noname) {
 	if (noname.action !== "downloadAssets")
 		return new Response(null, {
@@ -104,21 +76,23 @@ export async function getNoname(noname: Noname) {
 
 	try {
 		if (!version) version = await getLatestVersionFromGitHub(owner, repo);
+		const response = await fetch(`https://github.com/${owner}/${repo}/archive/refs/tags/${version}.zip`);
+		const noname = new JSZip();
+		await noname.loadAsync((await response.blob()) as Blob);
 		const zip = new JSZip();
 
 		await Promise.all(
-			fileList.map(file =>
-				limit(async () => {
-					const arrayBuffer = await fetchArrayBuffer(`https://raw.githubusercontent.com/${owner}/${repo}/${version}/${file}`);
+			fileList.map(async file => {
+				const nonameFile = noname.file(new RegExp(`^[^/]+/${file.replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&")}$`))[0];
 
-					zip.file(file, arrayBuffer, {
+				if (nonameFile)
+					zip.file(file, await nonameFile.async("blob"), {
 						compression: "DEFLATE",
 						compressionOptions: {
 							level: 9
 						}
 					});
-				})
-			)
+			})
 		);
 
 		const headers = new Headers();

@@ -18,8 +18,7 @@
 	"homepage": "https://github.com/Tipx-L/tipx-l-api#readme",
 	"type": "module",
 	"dependencies": {
-		"jszip": "^3.10.1",
-		"p-limit": "^5.0.0"
+		"jszip": "^3.10.1"
 	},
 	"scripts": {
 		"deploy": "wrangler deploy",
